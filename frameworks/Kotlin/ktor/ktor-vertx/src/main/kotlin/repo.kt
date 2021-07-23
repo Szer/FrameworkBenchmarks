@@ -1,7 +1,9 @@
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import io.vertx.kotlin.coroutines.await
-import io.vertx.sqlclient.SqlClient
+import io.vertx.pgclient.PgConnectOptions
+import io.vertx.pgclient.PgPool
+import io.vertx.sqlclient.PoolOptions
 import io.vertx.sqlclient.Tuple
 import kotlinx.coroutines.*
 import java.util.concurrent.ThreadLocalRandom
@@ -16,7 +18,21 @@ interface Db {
 
 fun randomInt() = 1 + ThreadLocalRandom.current().nextInt(10000)
 
-class VertxRepository(sqlClient: SqlClient) : Db {
+class VertxRepository(dbName: String?) : Db {
+
+    private val pgOptions =
+        PgConnectOptions().apply {
+            host = dbName ?: "tfb-database"
+            database = "hello_world"
+            user = "benchmarkdbuser"
+            password = "benchmarkdbpass"
+            cachePreparedStatements = true
+        }
+
+    private val sqlClient = run {
+        val poolOptions = PoolOptions().setMaxSize(64)
+        PgPool.pool(pgOptions, poolOptions)
+    }
 
     private val selectWorld = sqlClient.preparedQuery("select id, randomNumber from world where id = $1")
 
@@ -72,15 +88,14 @@ class VertxRepository(sqlClient: SqlClient) : Db {
         }
 }
 
-class CachedDb(private val delegate: Db, sqlClient: SqlClient) : Db by delegate {
-
-    private val selectAllWorlds = sqlClient.preparedQuery("select id, randomNumber from cachedworld")
-
+class CachedDb(private val delegate: Db) : Db by delegate {
     private val cache: Cache<Int, World> = Caffeine.newBuilder()
+        .executor(Dispatchers.Unconfined.asExecutor())
         .build<Int, World>()
         .apply {
             runBlocking {
-                putAll(getAllWorlds())
+                val allWorlds = delegate.getAllWorlds()
+                putAll(allWorlds)
             }
         }
 
@@ -94,14 +109,4 @@ class CachedDb(private val delegate: Db, sqlClient: SqlClient) : Db by delegate 
         }
         return worlds
     }
-
-    override suspend fun getAllWorlds(): Map<Int, World> =
-        selectAllWorlds.execute().await().let {
-            buildMap {
-                it.forEach {
-                    val world = World(it.getInteger(0), it.getInteger(1))
-                    this[world.id] = world
-                }
-            }
-        }
 }
