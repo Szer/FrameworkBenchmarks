@@ -4,7 +4,6 @@ plugins {
     id("com.github.johnrengelman.shadow") version "6.1.0"
     java
     kotlin("kapt") version "1.5.10"
-//    kotlin("plugin.serialization") version "1.5.10"
 }
 
 val entryPointName = "MainKt"
@@ -18,6 +17,7 @@ object V {
     const val postgres = "42.2.23"
     const val vertx = "4.1.1"
     const val dsljson = "1.9.8"
+    const val caffeine = "3.0.3"
 }
 
 repositories {
@@ -63,10 +63,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${V.kotlinx}")
     implementation("io.ktor:ktor-server-netty:${V.ktor}")
     implementation("io.ktor:ktor-server-core:${V.ktor}")
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.1")
     implementation("com.dslplatform:dsl-json-java8:${V.dsljson}")
+    implementation("com.github.ben-manes.caffeine:caffeine:${V.caffeine}")
     kapt("com.dslplatform:dsl-json-java8:${V.dsljson}")
-//    implementation("ch.qos.logback:logback-classic:${V.logback}")
 
     implementation("io.ktor:ktor-pebble:${V.ktor}")
 
