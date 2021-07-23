@@ -11,6 +11,9 @@ import io.ktor.routing.get
 import io.ktor.routing.routing
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.vertx.pgclient.PgConnectOptions
+import io.vertx.pgclient.PgPool
+import io.vertx.sqlclient.PoolOptions
 import java.nio.charset.StandardCharsets
 
 const val message = "Hello, World!"
@@ -42,8 +45,23 @@ inline fun <reified T> T.toJsonByteArray(): ByteArray {
 }
 
 fun main(args: Array<String>) {
-    val db = VertxRepository(args.firstOrNull())
-    val cachedDb = CachedDb(db)
+    val dbName = args.firstOrNull() ?: "tfb-database"
+    val pgOptions =
+        PgConnectOptions().apply {
+            host = dbName
+            database = "hello_world"
+            user = "benchmarkdbuser"
+            password = "benchmarkdbpass"
+            cachePreparedStatements = true
+        }
+
+    val sqlClient = run {
+        val poolOptions = PoolOptions().setMaxSize(64)
+        PgPool.pool(pgOptions, poolOptions)
+    }
+
+    val db = VertxRepository(sqlClient)
+    val cachedDb = CachedDb(db, sqlClient)
 
     val server = embeddedServer(
         Netty, 8080,

@@ -124,6 +124,7 @@
         "query_url": "/query/?queries=",
         "fortune_url": "/fortunes",
         "update_url": "/updates?queries=",
+        "cached_query": "/cached-worlds?count=",
         "port": 8080,
         "approach": "Realistic",
         "classification": "Fullstack",
